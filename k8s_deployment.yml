@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langchain-app
+  labels:
+    app: langchain
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: langchain
+  template:
+    metadata:
+      labels:
+        app: langchain
+    spec:
+      containers:
+        - name: langchain-container
+          image: registry.gitlab.com/<your-username>/<your-repo-name>:latest ##same with the one in the gitlab-ci as i explained 
+          ports:
+            - containerPort: 8501
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-token-secret
+                  key: OPENAI_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: langchain-service
+spec:
+  selector:
+    app: langchain
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8501
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-token-secret
+type: Opaque
+data:
+  OPENAI_API_KEY: <BASE64_ENCODED_TOKEN>
+
+
+
+
+##Replace <BASE64_ENCODED_TOKEN> in the secret with the base64-encoded value of your OpenAI API token:
+
+####  create base64 this way 
+##echo -n "your-openai-api-key" | base64

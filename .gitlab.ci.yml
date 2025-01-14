@@ -1,0 +1,39 @@
+stages:
+  - build
+  - test
+  - security_scan
+  - deploy
+
+variables:
+  DOCKER_IMAGE: registry.gitlab.com/<your-username>/<your-repo-name>:$CI_COMMIT_SHA   ##removed my username to allow others re-use 
+  KUBECONFIG: "/root/.kube/config"
+
+build:
+  stage: build
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKER_IMAGE .
+    - echo "Logging into GitLab Container Registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY    ##login to yor own docker registry 
+    - docker push $DOCKER_IMAGE
+
+sonarqube:
+  stage: test
+  image: sonarsource/sonar-scanner-cli
+  script:
+    - sonar-scanner -Dsonar.projectKey=<your-project-key> -Dsonar.sources=. -Dsonar.host.url=<sonarqube-server> -Dsonar.login=<sonarqube-token> #create sonar token 
+
+snyk_scan:
+  stage: security_scan
+  image: snyk/snyk-cli
+  script:
+    - snyk auth $SNYK_TOKEN
+    - snyk test --docker $DOCKER_IMAGE
+
+deploy:
+  stage: deploy
+  environment:
+    name: production
+  script:
+    - echo "Deploying to Kubernetes..."
+    - kubectl apply -f k8s/deployment.yml

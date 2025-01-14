@@ -1,0 +1,7 @@
+langchain
+#Openai
+Streamlit
+streamlit
+langchain
+openai==0.28
+langchain-community
